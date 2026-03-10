@@ -1,0 +1,391 @@
+{
+  "name": "Autonomous L&D Trend Watcher (Marketing/Content)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "0ed6752b-d282-4203-95fd-8a0d33948043",
+      "name": "Every Morning (09:00)"
+    },
+    {
+      "parameters": {
+        "url": "https://elearningindustry.com/feed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "75981483-e886-48ae-94f0-38b934408e6c",
+      "name": "Scan Global L&D News"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "01c27de5-e9f4-498d-9cc5-e840104ace3f",
+      "name": "Filter: Most Recent Article"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Je bent een L&D Trendwatcher.\nIk geef je een nieuwsartikel. Jouw taak is om dit te analyseren voor 'L&D Nederland'.\n\nArtikel Titel: {{ $json.title }}\nSamenvatting: {{ $json.contentSnippet }}\nLink: {{ $json.link }}\n\nVul het output schema in het NEDERLANDS:\n1. trend_inzicht: Wat is de kern van dit artikel? (Zakelijk, 2 zinnen).\n2. linkedin_draft: Schrijf een post hierover. Gebruik emoji's.\n3. image_prompt: Een korte, Engelse beschrijving voor een bijpassende afbeelding. Stijl: 'Modern corporate vector art, minimalist, flat design, soft blue and orange colors'.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "70a77c4d-c86a-43de-8a36-0bbb58857ffa",
+      "name": "AI Content Strategist"
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://image.pollinations.ai/prompt/\" + $('AI Content Strategist').item.json.output.image_prompt + \"?width=1024&height=1024&nologo=true\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        976,
+        0
+      ],
+      "id": "87eecd75-5870-4251-98e5-a1fb69ae139d",
+      "name": "Generate Visual (Pollinations AI)"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "options": {
+          "channelId": "YOUR_SLACK_CHANNEL_ID",
+          "initialComment": "={{\n\"📢 *Nieuwe L&D Trend Gespot!*\\n\\n\" +\n\n\"📰 *Artikel:* \" + $('Filter: Most Recent Article').item.json.title + \"\\n\" +\n\n\"🔗 *Link:* \" + $('Filter: Most Recent Article').item.json.link + \"\\n\\n\" +\n\n\"🧠 *Inzicht:* \" + $('AI Content Strategist').item.json.output.trend_inzicht + \"\\n\\n\" +\n\n\"✍️ *LinkedIn Concept:*\\n\" + $('AI Content Strategist').item.json.output.linkedin_draft\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "24ed63c4-cb59-498f-8c09-8695cd4334aa",
+      "name": "Distribute to Marketing Team",
+      "webhookId": "2f5e8bc8-7881-40c5-9b97-f84834004d37",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "GQBPu11Dn70U6Fe9",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "IT Traineeship Intake Formulier - n8n DEMO (Antwoorden)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 623555163,
+          "mode": "list",
+          "cachedResultName": "Trend Monitor",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=623555163"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Datum": "={{ $now }}",
+            "Artikel Titel": "={{ $('Scan Global L&D News').item.json.title }}",
+            "Trend Inzicht": "={{ $('AI Content Strategist').item.json.output.trend_inzicht }}",
+            "LinkedIn Draft": "={{ $('AI Content Strategist').item.json.output.linkedin_draft }}"
+          },
+          "matchingColumns": [
+            "Datum"
+          ],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Artikel Titel",
+              "displayName": "Artikel Titel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Trend Inzicht",
+              "displayName": "Trend Inzicht",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn Draft",
+              "displayName": "LinkedIn Draft",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "4f77419d-bd9b-4ff2-b600-8269cba7ab14",
+      "name": "Log to Content Calendar",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Autonomous Monitoring\nSysteem scant dagelijk om 9:00 uur automatisch wereldwijde bronnen (RSS feed) zonder menselijke input.",
+        "width": 560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -208
+      ],
+      "id": "66e6efe1-16fe-44f7-909f-18cde465cd0f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Content Creation Engine\nAI analyseert trends, schrijft copy en genereert real-time bijpassende visuals.",
+        "width": 448
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -208
+      ],
+      "id": "d94fd6df-340d-4dda-b084-b151f5443ce5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Multi-Channel Distribution\nContent wordt visueel aangeboden in Slack en gelogd in de database voor later.",
+        "width": 304,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        -208
+      ],
+      "id": "f547622a-77fe-433d-98d7-a2f6d6a48f4b",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        592,
+        208
+      ],
+      "id": "db62011c-8bb3-4e54-ade3-a9f2b7827987",
+      "name": "Gemini 2.5 Flash (Brain)",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Kajv9rdf5VnO0Ibs",
+          "name": "Google Gemini account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"trend_inzicht\": \"Korte samenvatting...\",\n  \"linkedin_draft\": \"Leuke post...\",\n  \"image_prompt\": \"A futuristic 3d isometric illustration of corporate learning, soft colors, minimalist\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        208
+      ],
+      "id": "cfc8d4da-8b4c-4150-9b83-8dfbd4de09de",
+      "name": "Format Data (JSON)"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        192
+      ],
+      "id": "6ca551c4-e449-4df6-aaf7-d4d5938e0608",
+      "name": "Test Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Morning (09:00)": {
+      "main": [
+        [
+          {
+            "node": "Scan Global L&D News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Global L&D News": {
+      "main": [
+        [
+          {
+            "node": "Filter: Most Recent Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Most Recent Article": {
+      "main": [
+        [
+          {
+            "node": "AI Content Strategist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Strategist": {
+      "main": [
+        [
+          {
+            "node": "Generate Visual (Pollinations AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Visual (Pollinations AI)": {
+      "main": [
+        [
+          {
+            "node": "Distribute to Marketing Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Distribute to Marketing Team": {
+      "main": [
+        [
+          {
+            "node": "Log to Content Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini 2.5 Flash (Brain)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Content Strategist",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data (JSON)": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Content Strategist",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Scan Global L&D News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4d478245-444d-4ca4-9563-726c3546d681",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "xKiaqOvu8RroHgqB",
+  "tags": []
+}
