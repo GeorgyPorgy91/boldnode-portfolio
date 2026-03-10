@@ -1,0 +1,915 @@
+{
+  "name": "AI Lead Orchestrator: Automated Qualification & Follow-up",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        -16
+      ],
+      "id": "2c6e6ea4-02f2-4f85-8044-bac84e977e4f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TiaFb1V6SyyfplHY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f5ac84cf-facc-4305-8344-db720ad3de51",
+              "name": "naam",
+              "value": "={{ $json.body.data.fields[0].value }}",
+              "type": "string"
+            },
+            {
+              "id": "21380358-31ed-44e8-8353-6d4d67ab8a8d",
+              "name": "email",
+              "value": "={{ $json.body.data.fields[1].value.toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "e3ba08d1-0789-4741-9915-d991bb94ed61",
+              "name": "bericht",
+              "value": "={{ $json.body.data.fields[2].value }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -944,
+        -304
+      ],
+      "id": "ad6e1aad-c991-4fdd-9639-f04420d2f579",
+      "name": "Data Normalization",
+      "notes": "Omschrijving: Email lowercase & trim."
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "email",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        -192
+      ],
+      "id": "74256d23-148a-4d28-9b30-a7f87a328342",
+      "name": "Deduplication Firewall",
+      "notes": "Muur die fouten tegenhoudt."
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyseer bericht: \"{{ $json.bericht }}\"\n\nSTAP 1 - Bepaal de intentie. Kies UITSLUITEND uit:\n- SALES (Iets willen kopen, offertes, prijzen opvragen, upgrades)\n- SUPPORT (Technische problemen, klachten, inlogproblemen, vragen over gebruik)\n- SPAM (Reclame, crypto, onzin, phishing)\n\nSTAP 2 - Bepaal het sentiment. Wees streng! Kies UITSLUITEND uit:\n- POSITIEF: Gebruik dit ALLEEN bij expliciete koopintentie (\"Ik wil nu starten\", \"Stuur de factuur maar\") of complimenten.\n- NEGATIVE: Klachten, boosheid, frustratie, dreigen met opzeggen.\n- NEUTRAL: Informatieve vragen (\"Wat zijn de tarieven?\", \"Hebben jullie een catalogus?\"), feitelijke meldingen en standaard beleefdheid.\n\nBELANGRIJKE REGEL:\nIemand die vraagt om informatie of prijzen is (Intentie: SALES) maar (Sentiment: NEUTRAAL). Label dit NIET als POSITIEF.\n\nAntwoord als raw JSON: { \"intentie\": \"...\", \"sentiment\": \"...\" }",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -448,
+        -192
+      ],
+      "id": "ed78353f-8f21-4c42-8ea8-c937949efcb5",
+      "name": "AI Reasoning Agent",
+      "notes": "Omschrijving: Analyseert intentie & sentiment."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bd7070eb-3ff7-49ba-92e4-a9227bbf27f7",
+                    "leftValue": "={{ $json.output.intentie }}",
+                    "rightValue": "SPAM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Spam Bin"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.intentie }}",
+                    "rightValue": "SALES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2dc0f88f-f16d-40d7-9f3f-043bec33ef58"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sales Team"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ba4c0736-7a66-4d14-be8e-d0232ec30260",
+                    "leftValue": "={{ $json.output.intentie }}",
+                    "rightValue": "SUPPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Klantenservice"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Handmatige Controle"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        128,
+        -224
+      ],
+      "id": "26187496-93f6-45ae-aa49-c9c4b7a7f948",
+      "name": "Intent Router"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ce4ffd04-a90c-4d35-b7de-912e07f704b7",
+              "leftValue": "={{ $('Code in JavaScript').item.json.output.sentiment }}",
+              "rightValue": "POSITIEF",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        -400
+      ],
+      "id": "c0630864-7504-4ae7-b3de-7acdba268f5e",
+      "name": "Priority Check"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Sales Team - n8n demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "LEADS GEGEVENS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Naam": "={{ $('Code in JavaScript').item.json.naam }}",
+            "Email": "={{ $('Code in JavaScript').item.json.email }}",
+            "Bericht": "={{ $('Code in JavaScript').item.json.bericht }}",
+            "Actie": "Standaard Opvolging (Neutraal/Checken)",
+            "Datum": "={{ $now.toFormat('dd-MM-yyyy HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bericht",
+              "displayName": "Bericht",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Actie",
+              "displayName": "Actie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        608,
+        -304
+      ],
+      "id": "92f3ad1f-3881-4d2f-9471-05c86e2c63e7",
+      "name": "Action: Sales Standard",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Sales Team - n8n demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "LEADS GEGEVENS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Naam": "={{ $('Code in JavaScript').item.json.naam }}",
+            "Email": "={{ $('Code in JavaScript').item.json.email }}",
+            "Bericht": "={{ $('Code in JavaScript').item.json.bericht }}",
+            "Actie": "Ticket Aanmaken",
+            "Datum": "={{ $now.toFormat('dd-MM-yyyy HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bericht",
+              "displayName": "Bericht",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Actie",
+              "displayName": "Actie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        -208
+      ],
+      "id": "d1c9de80-479e-42d3-8816-62eaa2ad5300",
+      "name": "Action: Create Ticket",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Sales Team - n8n demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "LEADS GEGEVENS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Datum": "={{ $now.toFormat('dd-MM-yyyy HH:mm') }}",
+            "Naam": "={{ $('Code in JavaScript').item.json.naam }}",
+            "Email": "={{ $('Code in JavaScript').item.json.email }}",
+            "Bericht": "={{ $('Code in JavaScript').item.json.bericht }}",
+            "Actie": "CHECKEN: AI TWIJFELT"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bericht",
+              "displayName": "Bericht",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Actie",
+              "displayName": "Actie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        -16
+      ],
+      "id": "8cd3acd9-128f-4b24-8533-6618cbe376af",
+      "name": "Action: Manual Review (Flagged)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Phase 1: Data Quality",
+        "height": 768,
+        "width": 688
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1232,
+        -560
+      ],
+      "id": "5b2931d1-d30d-489c-bc95-c71970c4f9a8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Phase 2: AI Intelligence\n",
+        "height": 768,
+        "width": 576,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        -560
+      ],
+      "id": "0dc7bb75-a46c-4324-a9d3-06fed804ff2a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Phase 3: Logic & Action\n",
+        "height": 768,
+        "width": 992,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -560
+      ],
+      "id": "a9478132-6fa9-48e1-9283-392ed601c781",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "portfolio-demo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1168,
+        -304
+      ],
+      "id": "e9661b61-99ab-4986-bf59-4a87f5d094f5",
+      "name": "Webhook",
+      "webhookId": "e6639c65-ca23-4018-9245-9919110901b1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Deduplication Firewall').item.json.email }}",
+        "subject": "=Ontvangstbevestiging: Uw aanvraag is in behandeling",
+        "message": "=Beste {{ $('Deduplication Firewall').item.json.naam }},<br><br>\n\nHartelijk dank voor uw bericht. We hebben uw gegevens in goede orde ontvangen.<br><br>\n\n<b>📋 Samenvatting van uw aanvraag:</b><br>\n<i>\"{{ $('Deduplication Firewall').item.json.bericht }}\"</i><br><br>\n\n<b>✅ Status:</b><br>\nOp basis van de inhoud is uw bericht direct doorgestuurd naar onze afdeling: <b>{{ $('Code in JavaScript').item.json.output.intentie }}</b>.<br>\nOns team gaat hiermee aan de slag en neemt zo spoedig mogelijk contact met u op.<br><br>\n\nHeeft u in de tussentijd aanvullende vragen? Beantwoord dan gerust deze e-mail.<br><br>\n\nMet vriendelijke groet,<br><br>\n\n<b>Het Team</b><br>\nAutomated Triage Support",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -208
+      ],
+      "id": "5aae4b30-1b74-4944-bb62-02b6971febbb",
+      "name": "Send a message",
+      "webhookId": "a6b103df-cd96-4fd3-8eb9-0b7793d52f90",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "HLaCutU33jtQqOAG",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Sales Team - n8n demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "LEADS GEGEVENS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Naam": "={{ $('Code in JavaScript').item.json.naam }}",
+            "Email": "={{ $('Code in JavaScript').item.json.email }}",
+            "Bericht": "={{ $('Code in JavaScript').item.json.bericht }}",
+            "Actie": "DIRECT BELLEN (HOT LEAD)",
+            "Datum": "={{ $now.toFormat('dd-MM-yyyy HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bericht",
+              "displayName": "Bericht",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Actie",
+              "displayName": "Actie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        608,
+        -496
+      ],
+      "id": "f1bcf86a-c6c1-4141-853d-d9ebae3b0e4a",
+      "name": "Action: Sales VIP (Hot Lead)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        -80
+      ],
+      "id": "a8a94a66-c9b1-4854-9e85-8f09e97f2495",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// We simuleren hier EXACT de structuur die Tally verstuurt.\n// Zo hoeven we de rest van de workflow niet aan te passen.\n\nreturn [\n  // SCENARIO 1: Een blije Sales lead\n  {\n    json: {\n      body: {\n        data: {\n          fields: [\n            { value: \"Test Jan (Sales)\" },              // Index 0: Naam\n            { value: \"jan.test@bedrijf.nl\" },           // Index 1: Email\n            { value: \"Ik wil graag de Enterprise versie kopen!\" } // Index 2: Bericht\n          ]\n        }\n      }\n    }\n  },\n  // SCENARIO 2: Een boze Support klant\n  {\n    json: {\n      body: {\n        data: {\n          fields: [\n            { value: \"Test Els (Support)\" },            // Index 0: Naam\n            { value: \"els.test@klacht.nl\" },            // Index 1: Email\n            { value: \"Mijn inlog werkt niet en ik ben boos.\" }   // Index 2: Bericht\n          ]\n        }\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -944,
+        -80
+      ],
+      "id": "56d16f01-da2a-401a-bbc6-633d3de0f9ff",
+      "name": "Mock Data (Tally Structure)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Haal de resultaten van de AI op (huidige input)\nconst aiResults = items;\n\n// 2. Haal de ORIGINELE klantdata op (van de node vóór de AI)\n// Let op: Zorg dat de naam tussen haakjes exact klopt met je node naam\nlet originalData = [];\ntry {\n  originalData = $('Deduplication Firewall').all();\n} catch (error) {\n  // Fallback voor als je test zonder de hele flow\n  originalData = aiResults; \n}\n\nreturn aiResults.map((item, index) => {\n  // 3. Zoek de tekst van Gemini (waar hij ook verstopt zit)\n  const root = item.json;\n  const rawText = root.text || root.output || root.response || (root.generations ? root.generations[0][0].text : \"\") || JSON.stringify(root);\n\n  let finalIntentie = \"HANDMATIG\";\n  let finalSentiment = \"NEUTRAAL\";\n\n  // 4. De \"Regex\" grijper: Vis de JSON eruit\n  const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\n\n  if (jsonMatch) {\n    try {\n      const cleanData = JSON.parse(jsonMatch[0]);\n      if (cleanData.intentie) finalIntentie = cleanData.intentie.toString().toUpperCase();\n      if (cleanData.sentiment) finalSentiment = cleanData.sentiment.toString().toUpperCase();\n    } catch (e) {\n      // JSON stuk, jammer dan -> handmatig\n    }\n  }\n\n  // 5. DE SAMENVOEGING (Merge)\n  // We pakken de originele data (Naam/Email) van de juiste index\n  // En plakken daar de nieuwe AI output aan vast\n  const customerData = originalData[index] ? originalData[index].json : {};\n\n  return {\n    json: {\n      ...customerData,  // <--- Hier herstellen we Naam, Email, Bericht!\n      output: {\n        intentie: finalIntentie,\n        sentiment: finalSentiment\n      }\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -192
+      ],
+      "id": "c1a54e7c-da18-4c04-9282-ade2e45d0d10",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Reasoning Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Normalization": {
+      "main": [
+        [
+          {
+            "node": "Deduplication Firewall",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplication Firewall": {
+      "main": [
+        [
+          {
+            "node": "AI Reasoning Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Reasoning Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Router": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Priority Check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Action: Create Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Action: Manual Review (Flagged)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Priority Check": {
+      "main": [
+        [
+          {
+            "node": "Action: Sales VIP (Hot Lead)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Action: Sales Standard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Data Normalization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action: Sales Standard": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action: Create Ticket": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action: Manual Review (Flagged)": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action: Sales VIP (Hot Lead)": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Mock Data (Tally Structure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Data (Tally Structure)": {
+      "main": [
+        [
+          {
+            "node": "Data Normalization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Intent Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "lsahVPYE4GsMiTpM"
+  },
+  "versionId": "e7fb6fb0-87e4-4692-9fce-640c7c46cec7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "dQ0YMfUV43zdcgCO",
+  "tags": []
+}
