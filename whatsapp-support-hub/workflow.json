@@ -1,0 +1,1784 @@
+{
+  "name": "WhatsApp Chatbot - v2.0",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages",
+          "account_review_update",
+          "account_update",
+          "business_capability_update",
+          "message_template_quality_update",
+          "message_template_status_update",
+          "phone_number_name_update",
+          "phone_number_quality_update",
+          "security",
+          "template_category_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -976,
+        592
+      ],
+      "id": "deafeb9a-7213-4b72-b434-60ec6eacffb1",
+      "name": "💬 Inkomend WhatsApp",
+      "webhookId": "56b53657-381f-4fec-aa7b-1711b393f476",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "gfXb4V2JacLFWlPj",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.messages && $json.messages[0].type === 'text' }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        592
+      ],
+      "id": "c52dec8b-043e-4b29-882b-ab4efca91c32",
+      "name": "🔍 Check: Is het tekst?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2d934ad2-768d-4a3a-8a42-8738b111d426",
+              "leftValue": "={{ $('🧠 AI: Boekhouder (Analyse)').item.json.output }}",
+              "rightValue": "=STATUS: BELANGRIJKE UPDATE",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "df76a51f-20cb-428b-8b16-67ba548ff1a3",
+              "leftValue": "={{ $('🧠 AI: Boekhouder (Analyse)').item.json.output }}",
+              "rightValue": "STATUS: SPOED",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2864,
+        592
+      ],
+      "id": "541a2354-27da-40dd-8f3e-3e6b90194f42",
+      "name": "🔔 Filter: Is het belangrijk?"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1408,
+        688
+      ],
+      "id": "7f87a2eb-475c-4faf-853b-de6a0bde9f04",
+      "name": "💭 Geheugen"
+    },
+    {
+      "parameters": {
+        "content": "## 📡 1. INTAKE & ROUTING\n- Luistert naar inkomende WhatsApps.\n- Checkt: Bestaande klant of Nieuwe lead?\n- Maakt automatisch Telegram Topic aan indien nodig.\n- Voegt alle data samen (Merge) voor verdere verwerking.",
+        "height": 720,
+        "width": 2016,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        304
+      ],
+      "id": "5090c64c-da35-450e-9bd3-f38c59008fa8",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## 🗣️ 5. BI-DIRECTIONELE SYNC\n- Luistert naar wat Jansen typt in Telegram.\n- Zoekt het bijbehorende 06-nummer via het Topic ID.\n- Stuurt het bericht als WhatsApp naar de klant.",
+        "height": 656,
+        "width": 992,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        1040
+      ],
+      "id": "30afb782-dee8-493a-85e0-e06fc2f055a7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2432,
+        816
+      ],
+      "id": "3704df65-85e7-4181-863e-fa498d772580",
+      "name": "💭 Geheugen1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Loodgieter Jansen - Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "WhatsApp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Telefoonnummer",
+              "lookupValue": "={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -528,
+        592
+      ],
+      "id": "51a4f812-7c2f-4ace-910d-972777be8d68",
+      "name": "📂 Sheet: Haal Klant Data",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "338cf279-cfb0-4fa8-a8fe-69eb8159d459",
+              "leftValue": "={{ $json.TelegramThreadID }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ce394ad6-7337-422a-ac05-8d67d9dc9e06",
+              "leftValue": "={{ $json.TelegramThreadID }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        688
+      ],
+      "id": "4a602019-7e2a-4ad7-9a37-bca30fd969dc",
+      "name": "❓ Check: Bestaat Topic?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/createForumTopic",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"-1003314662361\",\n  \"name\": \"{{ $('💬 Inkomend WhatsApp').item.json.contacts[0].profile.name }} - {{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        144,
+        528
+      ],
+      "id": "9dce25bf-29c9-4505-af90-1919b3a30a66",
+      "name": "🆕 Telegram: Maak Topic"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Loodgieter Jansen - Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "WhatsApp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telefoonnummer": "={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}",
+            "TelegramThreadID": "={{ $json.result.message_thread_id }}"
+          },
+          "matchingColumns": [
+            "Telefoonnummer"
+          ],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefoonnummer",
+              "displayName": "Telefoonnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Samenvatting gesprek",
+              "displayName": "Samenvatting gesprek",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "STATUS BOT",
+              "displayName": "STATUS BOT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TelegramThreadID",
+              "displayName": "TelegramThreadID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        528
+      ],
+      "id": "c3c7ef4b-3515-4604-b8c3-55d3317966a3",
+      "name": "💾 Sheet: Save Topic ID",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        816,
+        592
+      ],
+      "id": "fae366a9-ba33-47d2-b071-08cacfb42ebf",
+      "name": "🔀 Merge: Data Compleet"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6413b4d5-4ead-4b50-b3df-0d84ffd92a62",
+              "leftValue": "={{ $('📂 Sheet: Haal Klant Data').item.json['STATUS BOT'] }}",
+              "rightValue": "STOP",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        592
+      ],
+      "id": "dd95caf0-9eff-4da7-aab5-2e83b23e40fa",
+      "name": "🛑 Check: Status ACTIVE?"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// We pakken de tekst die de Chat Agent wil versturen\nlet aiResponse = $input.item.json.output;\n\n// We definiëren verboden woorden (ALLEEN de interne codes)\nconst verbodenWoorden = [\"STATUS:\", \"SAMENVATTING:\", \"KLANT:\", \"ADRES:\"];\n\n// Check of de tekst een verboden woord bevat\nconst bevatVerbodenWoord = verbodenWoorden.some(woord => aiResponse.includes(woord));\n\n// Scenario 1: De AI is in de war en stuurt een Status-update naar de klant\nif (bevatVerbodenWoord) {\n  return {\n    json: {\n      safe_output: \"Bedankt! Ik zorg dat Jansen dit ontvangt.\"\n    }\n  };\n}\n\n// Scenario 2: De AI doet normaal\nreturn {\n  json: {\n    safe_output: aiResponse\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        464
+      ],
+      "id": "4afeb1cc-fa4c-47c4-9a01-7d3836d5dd55",
+      "name": "🛡️ Code: Douane Filter"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "898329500031030",
+        "recipientPhoneNumber": "={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}",
+        "textBody": "={{ $('🛡️ Code: Douane Filter').item.json.safe_output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        464
+      ],
+      "id": "b119bea4-ec40-4842-aa70-8a4bb44564a0",
+      "name": "📤 WA: Stuur AI Antwoord",
+      "webhookId": "4f24778f-5347-4637-9700-aa0d228e95d3",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "zd9TmIvwmxSjI75q",
+          "name": "WhatsApp business account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=HUIDIGE KENNIS IN DATABASE (Vorige samenvatting):\n\"\"\"\n{{ $('📂 Sheet: Haal Klant Data').item.json['Samenvatting gesprek'] }}\n\"\"\"\n\nOPDRACHT:\nVergelijk de nieuwe chatgeschiedenis met de \"HUIDIGE KENNIS\".\nIs er een NIEUW ADRES of een NIEUWE TIJD genoemd die nog niet in de database staat?",
+        "options": {
+          "systemMessage": "Je bent de strenge administratieve boekhouder.\nJe hebt toegang tot:\n1. De Chatgeschiedenis (Het gesprek nu).\n2. De \"HUIDIGE KENNIS\" (Wat er al in Google Sheets staat).\n\nJOUW DOEL: Filter alle ruis. Jansen wil ALLEEN een melding bij NIEUWE INFORMATIE in het LAATSTE BERICHT.\n\n⚠️ BELANGRIJK: Je beoordeelt de *waarde van het nieuwe bericht*, niet de ernst van het dossier.\nZelfs als het huis in brand staat (SPOED dossier), maar de klant zegt alleen \"Oke\" -> Dan is de status: RUIS.\n\nREGELS VOOR STATUS:\n\n1. STATUS: \"RUIS\" (Kies dit in 99% van de gevallen!)\n   - Als de klant alleen bevestigt (\"Oke\", \"Is goed\", \"Top\", \"Duidelijk\", \"Bedankt\").\n   - Als de klant groet of gedag zegt.\n   - Als de klant informatie herhaalt die al in \"HUIDIGE KENNIS\" staat.\n   - Als de klant alleen het probleem omschrijft zonder nieuwe harde feiten.\n\n2. STATUS: \"BELANGRIJKE UPDATE\"\n   - Er wordt een NIEUW ADRES genoemd dat nog niet in \"HUIDIGE KENNIS\" stond.\n   - Er wordt een NIEUWE DATUM/TIJD voorkeur genoemd.\n   - Er wordt een MERK of TYPE (bijv. van ketel/toilet) genoemd.\n\n3. STATUS: \"SPOED\"\n   - Kies dit ALLEEN als het *laatste bericht* van de klant expliciet paniek of escalatie bevat (bijv: \"Het water stroomt nu de gang in!\").\n   - Als het dossier al spoed was, maar de klant zegt nu \"Oke\", dan is het RUIS.\n\nFormat EXACT zo:\nSTATUS: [KIES STATUS]\nKLANT: [Naam]\nADRES: [Het meest complete adres dat je nu weet]\nSAMENVATTING: [De totale, geüpdatete situatie voor in de sheet, inclusief alle details]"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2288,
+        592
+      ],
+      "id": "7b4e5d05-9859-4e5e-ad1c-d1c5d33497bf",
+      "name": "🧠 AI: Boekhouder (Analyse)",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=CONTEXT INFO:\n- Naam klant: {{ $('💬 Inkomend WhatsApp').item.json.contacts[0].profile.name }}\n- Telefoonnummer: {{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\n\nBERICHT VAN KLANT:\n{{ $('💬 Inkomend WhatsApp').item.json.messages[0].type === 'text' ? $('💬 Inkomend WhatsApp').item.json.messages[0].text.body : \"SYSTEEM: De gebruiker stuurde GEEN tekst (maar foto, audio of locatie). Zeg vriendelijk dat je dit nog niet kunt verwerken en vraag om tekst.\" }}",
+        "options": {
+          "systemMessage": "PROMPT: Digitale Assistent Loodgieter Jansen**\n\n### ⚠️ CRUCIALE SYSTEEM INSTRUCTIE (NIET VOOR DE KLANT) ⚠️ ###\nJe deelt je geheugen met een database-bot.\nIn de gespreksgeschiedenis zul je teksten zien zoals: \"STATUS: ...\", \"SAMENVATTING: ...\", \"KLANT: ...\".\n\nDIT ZIJN INTERNE NOTITIES. NEGEER DEZE VOLLEDIG!\n- Je mag NOOIT antwoorden in dit format.\n- Je mag deze status-updates NIET aan de klant laten zien.\nAls je zo'n bericht ziet, doe alsof het er niet is en reageer alleen op de laatste tekst van de klant.\nJouw enige rol is: Vriendelijke, menselijke chat-assistent.\n###########################################################\n\n## **JE IDENTITEIT**\nJe bent de **digitale assistent (chatbot)** van Loodgieter Jansen.  \n- Je spreekt **Nederlands**\n- ⚠️ **JIJ BENT GEEN MENS**\n- ⚠️ **JE HEBT GEEN TOEGANG TOT DE AGENDA**\n\n---\n\n## **STRIKT VERBODEN**\n\n### **❌ ABSOLUUT VERBODEN:**\n1. **NOOIT** een afspraak bevestigen of \"inplannen\"\n2. **NOOIT** het woord **\"noteren\"** gebruiken (klinkt als bevestiging)\n3. **NOOIT** suggereren dat je toegang hebt tot planning\n4. **NOOIT** zeggen: \"Ja dat kan\", \"Dat is mogelijk\", \"Dat lukt\", \"Afgesproken\"\n5. **NOOIT** vragen naar naam of telefoonnummer (zijn al bekend)\n6. **NOOIT** meerdere vragen tegelijk stellen\n\n---\n\n## **VERPLICHTE FORMULERINGEN**\n\n### **✅ WEL GEBRUIKEN:**\n- *\"Ik geef uw voorkeur door aan Jansen\"*\n- *\"Jansen zal kijken of dit past\"*\n- *\"Jansen beheert de agenda en laat u weten of dit mogelijk is\"*\n- *\"Ik zorg dat Jansen dit ontvangt\"*\n\n### **❌ NOOIT GEBRUIKEN:**\n- ~~\"Ik noteer\"~~\n- ~~\"Dat is ingepland\"~~\n- ~~\"Afspraak gemaakt\"~~\n- ~~\"Dat kan\"~~\n- ~~\"Bevestigd\"~~\n\n---\n\n## **TE VERZAMELEN INFORMATIE**\nIdentificeer en verzamel:\n1. **Klantnaam** [uit context - vraag NIET]\n2. **Probleem** - Wat is er aan de hand?\n3. **Details probleem** - Vraag door voor helderheid\n4. **Urgentie** - SPOED of regulier?\n5. **Volledig adres:**\n   - Straatnaam + huisnummer\n   - Postcode (indien mogelijk)\n   - Stad/dorp/gemeente\n6. **Tijdsvoorkeur** - Wanneer komt het uit?\n\n\n---\n\nNEGEER alle teksten in de geschiedenis die lijken op \"STATUS:\", \"SAMENVATTING:\" of interne notities. Dit zijn notities van de boekhouder, niet van jou of de klant.\nJij spreekt UITSLUITEND tegen de klant in vriendelijke volzinnen.\n\n---\n\n## **GESPREKSFLOW** (Stap voor stap)\n\n### **Stap 1: Begroeting & Transparantie**\n- **VERPLICHT in eerste bericht:** Vermeld dat je de digitale assistent bent, NIET Jansen zelf\n- Voorbeeld: *\"Goedendag! Ik ben de digitale assistent van Loodgieter Jansen. Waarmee kan ik u helpen?\"*\n\n### **Stap 2: Probleem identificeren**\n- Vraag naar het probleem\n- Vraag door voor details voordat je verder gaat\n- Toon empathie waar gepast\n- Voorbeelden:\n  - *\"Wat vervelend! Lekt de kraan, of loopt hij helemaal niet?\"*\n  - *\"Om de urgentie in te schatten: spuit het water actief, of druppelt het?\"*\n\n### **Stap 3: Adres opvragen**\n- Vraag om volledig adres\n- Voorbeeld: *\"Wat is het adres waar Jansen langs moet komen?\"*\n\n### Stap 4: Tijdsvoorkeur opvragen\n- Vraag naar voorkeur.\n- ⚠️ BELANGRIJK: Als de klant zegt \"ZSM\", \"Nu\", \"Spoed\" of \"Zo snel mogelijk\":\n  - Accepteer dit als geldig antwoord.\n  - Vraag NIET door naar een specifieke datum of tijd.\n  - Zeg: \"Duidelijk, ik geef door dat u zo snel mogelijk geholpen wilt worden.\"\n\n### **Stap 5: Voorkeur doorgeven (KRITIEK!)**\nAls de klant een tijd noemt, gebruik **EXACT** deze formulering:\n\n**\"Ik geef uw voorkeur voor [dag/tijdstip] direct door aan Jansen. Hij beheert de agenda en laat u weten of dit past.\"**\n\nVarianten die mogen:\n- *\"Ik geef uw voorkeur voor morgenochtend 10:00 door aan Jansen. Hij kijkt in de planning en neemt contact op.\"*\n- *\"Ik zorg dat Jansen uw voorkeur voor vrijdag ontvangt. Hij laat u weten of dit mogelijk is.\"*\n\n---\n\n## **COMMUNICATIESTIJL**\n\n### **✅ WEL:**\n- **Maximaal 1 vraag per bericht**\n- **Maximaal 2 korte zinnen** per bericht\n- **Kort en zakelijk** maar vriendelijk\n- Empathie tonen bij problemen\n- Duidelijke, heldere taal\n\n### **❌ NIET:**\n- Lang uitweiden\n- Robotachtig klinken\n- Te formeel of te informeel\n- Onnodige uitleg geven\n\n---\n\n## **SPECIALE SITUATIES**\n\n### **Bij SPOED:**\n- Erken de urgentie direct\n- Voorbeeld: *\"Dat klinkt urgent. Ik geef dit direct als spoed door aan Jansen.\"*\n- Verzamel daarna alsnog adres en voorkeur\n\n### **Als klant vraagt: \"Kan dit vandaag nog?\"**\n- **NOOIT** zeggen \"Ja\" of \"Dat kan\"\n- **WEL:** *\"Ik geef uw spoedverzoek voor vandaag door aan Jansen. Hij kijkt wat mogelijk is en neemt contact op.\"*\n\n### **Als klant vraagt: \"Is dit dan afgesproken?\"**\n- **NOOIT** bevestigen\n- **WEL:** *\"Jansen heeft uw voorkeur ontvangen en laat u weten of dit in de planning past.\"*\n\n---\n\n## **VOORBEELDDIALOOG**\n\n**Klant:** \"Hallo, mijn cv doet het niet meer\"\n\n**Jij:** \"Goedendag! Ik ben de digitale assistent van Loodgieter Jansen. Wat vervelend van uw cv! Geeft hij helemaal geen warmte meer?\"\n\n**Klant:** \"Nee, helemaal niks. Radiators blijven koud.\"\n\n**Jij:** \"Duidelijk. Wat is het adres waar Jansen langs moet komen?\"\n\n**Klant:** \"Hoofdstraat 42, Amsterdam\"\n\n**Jij:** \"Bedankt. Wanneer zou het u het beste uitkomen?\"\n\n**Klant:** \"Morgen om 14:00?\"\n\n**Jij:** \"Ik geef uw voorkeur voor morgen 14:00 direct door aan Jansen. Hij beheert de agenda en laat u weten of dit past.\"\n\n---\n\n## **KRITIEKE HERINNERINGEN**\n- 🚫 Jij bent **GEEN mens** - wees transparant\n- 🚫 Jij hebt **GEEN agenda-toegang** - doe geen toezeggingen\n- 🚫 **NOOIT** het woord \"noteren\" gebruiken\n- ✅ **ALTIJD** zeggen: \"Ik geef door aan Jansen\" + \"Hij laat u weten\"\n- ✅ Blijf **kort, zakelijk maar vriendelijk**\n- ✅ **Eén vraag per bericht**\n\n---\n\n**KERNBOODSCHAP:** Verzamel informatie efficiënt, wees transparant over je rol, en laat Jansen alle planningsbeslissingen nemen."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1264,
+        464
+      ],
+      "id": "9f55a958-2b5c-4116-8281-a104d63f7fa9",
+      "name": "🤖 AI: Receptioniste",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Loodgieter Jansen - Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "WhatsApp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telefoonnummer": "={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}",
+            "Datum": "={{ $now.setZone('Europe/Amsterdam').toFormat('dd-MM-yyyy, HH:mm') }}",
+            "Naam": "={{ $('💬 Inkomend WhatsApp').item.json.contacts[0].profile.name }}",
+            "Samenvatting gesprek": "={{ $json.output }}"
+          },
+          "matchingColumns": [
+            "Telefoonnummer"
+          ],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefoonnummer",
+              "displayName": "Telefoonnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Samenvatting gesprek",
+              "displayName": "Samenvatting gesprek",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        592
+      ],
+      "id": "cca2f9e9-eb0f-4e8e-823f-6730eb50d958",
+      "name": "📝 Sheet: Update Samenvatting",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003314662361",
+        "text": "=🔔 <b>UPDATE VAN JE CHATBOT</b>\n\n{{ $('🧠 AI: Boekhouder (Analyse)').item.json.output }}\n\n👇 <b>ANTWOORDEN:</b>\n<i>Typ je bericht hieronder in dit topic om direct iets terug te sturen.</i>\n\n👇 <b>ACTIES:</b>\n<a href=\"https://YOUR_N8N_DOMAIN/webhook/stop-bot?tel={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">⛔ STOP DE BOT</a> (Ik neem het over)\n\n<a href=\"https://YOUR_N8N_DOMAIN/webhook/start-bot?tel={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">✅ START DE BOT</a> (AI mag weer praten)\n\n📞 <a href=\"tel:+{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">Bel: +{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}</a>\n\n<a href=\"https://wa.me/{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">💬 Open WhatsApp</a>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "message_thread_id": "={{ $('🔀 Merge: Data Compleet').item.json.TelegramThreadID }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3312,
+        496
+      ],
+      "id": "e5db7979-c650-4ebf-a82f-fca72ee75d98",
+      "name": "🔔 Telegram: Update (Bot = AAN)",
+      "webhookId": "d0412fc7-53d5-4871-bbc1-16813b564d9f",
+      "credentials": {
+        "telegramApi": {
+          "id": "3rbhbYNowj1q9CtA",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003314662361",
+        "text": "=✋ <b>BERICHT ONTVANGEN (BOT ZWIJGT)</b>\n\n<b>{{ $('💬 Inkomend WhatsApp').item.json.contacts[0].profile.name }}</b> zegt:\n<i>\"{{ $('💬 Inkomend WhatsApp').item.json.messages[0].text.body }}\"</i>\n\n👇 <b>ANTWOORDEN:</b>\n<i>Typ je bericht hieronder in dit topic. De klant krijgt het direct.</i>\n\n👇 <b>ACTIES:</b>\n<a href=\"https://YOUR_N8N_DOMAIN/webhook/start-bot?tel={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">✅ START DE BOT</a> (AI mag weer praten)\n\n📞 <a href=\"tel:+{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">Bel: +{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}</a>\n\n<a href=\"https://wa.me/{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">💬 Open WhatsApp</a>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "message_thread_id": "={{ $('🔀 Merge: Data Compleet').item.json.TelegramThreadID }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1840,
+        720
+      ],
+      "id": "ae197e03-107d-4930-9186-440aee82c84d",
+      "name": "🔕 Telegram: Melding (Bot = UIT)",
+      "webhookId": "06332e72-0dce-4711-b083-f1e74c54dbd9",
+      "credentials": {
+        "telegramApi": {
+          "id": "3rbhbYNowj1q9CtA",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "stop-bot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        1200
+      ],
+      "id": "2014b8de-0fe3-40e5-b008-271a4acf7137",
+      "name": "🔗 Webhook: STOP",
+      "webhookId": "6ee738f7-18c4-41b5-ae15-4a365bf5944d"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Loodgieter Jansen - Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "WhatsApp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telefoonnummer": "={{ $json.query.tel }}",
+            "STATUS BOT": "STOP"
+          },
+          "matchingColumns": [
+            "Telefoonnummer"
+          ],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefoonnummer",
+              "displayName": "Telefoonnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Samenvatting gesprek",
+              "displayName": "Samenvatting gesprek",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "STATUS BOT",
+              "displayName": "STATUS BOT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -736,
+        1200
+      ],
+      "id": "7a0d1197-2385-4b84-ae0f-456f1cae90f9",
+      "name": "🛑 Sheet: Zet op STOP",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=✅ GEREGELD!\n\nDe bot is gestopt voor telefoonnummer: {{ $json.Telefoonnummer }}\n\nJij kunt het gesprek nu overnemen.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        1200
+      ],
+      "id": "accb1b98-6c13-412e-b0d9-0286e03e1d32",
+      "name": "✅ Browser: Bevestig STOP"
+    },
+    {
+      "parameters": {
+        "path": "start-bot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        1456
+      ],
+      "id": "266b524f-4634-47a9-bdb1-2a9162155344",
+      "name": "🔗 Webhook: START",
+      "webhookId": "424f9018-8667-4390-9e53-186145298a32"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Loodgieter Jansen - Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "WhatsApp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telefoonnummer": "={{ $json.query.tel }}",
+            "STATUS BOT": "ACTIVE"
+          },
+          "matchingColumns": [
+            "Telefoonnummer"
+          ],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefoonnummer",
+              "displayName": "Telefoonnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Samenvatting gesprek",
+              "displayName": "Samenvatting gesprek",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "STATUS BOT",
+              "displayName": "STATUS BOT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -736,
+        1456
+      ],
+      "id": "bc84b8ec-b021-40a1-9e04-098cdb28bf00",
+      "name": "▶️ Sheet: Zet op ACTIVE",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=✅ GEREGELD!\n\n🤖 De bot is weer GESTART voor deze klant. Hij neemt het volgende bericht over.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        1456
+      ],
+      "id": "d82fb74c-8160-4dba-84ad-47925b6efb8b",
+      "name": "✅ Browser: Bevestig START"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "chatIds": ""
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        2688,
+        1296
+      ],
+      "id": "c305746d-6255-4448-a5e3-542188f847c7",
+      "name": "🔵 Trigger: Jansen Typt",
+      "webhookId": "d36ab346-da39-4a03-9fe4-29afb2dc49a7",
+      "credentials": {
+        "telegramApi": {
+          "id": "3rbhbYNowj1q9CtA",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Loodgieter Jansen - Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "WhatsApp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "TelegramThreadID",
+              "lookupValue": "={{ $json.message.message_thread_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3136,
+        1296
+      ],
+      "id": "56796088-42b8-4d87-b3b5-f5ce6a46b77d",
+      "name": "🔎 Sheet: Zoek 06 bij Topic",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "898329500031030",
+        "recipientPhoneNumber": "={{ $('🔎 Sheet: Zoek 06 bij Topic').item.json.Telefoonnummer.toString() }}",
+        "textBody": "={{ $('🔵 Trigger: Jansen Typt').item.json.message.text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        3360,
+        1296
+      ],
+      "id": "06ea2525-fba6-4fb3-9e13-1f3ae8338482",
+      "name": "🗣️ WA: Stuur bericht Jansen",
+      "webhookId": "e80f465b-0621-473a-9edb-d4c16bafe868",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "zd9TmIvwmxSjI75q",
+          "name": "WhatsApp business account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fc123541-5e9f-4645-9d80-75ca8a4ce98e",
+              "name": "TelegramThreadID",
+              "value": "={{ $('🆕 Telegram: Maak Topic').item.json.result.message_thread_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        528
+      ],
+      "id": "e4cce13f-d794-42c9-b702-c96aa6cfa2c4",
+      "name": "🔧 Zet ID terug"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8504d725-7e98-4220-b1fa-844f4150c049",
+              "leftValue": "={{ $json.Telefoonnummer && $json.Telefoonnummer.toString().length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -304,
+        592
+      ],
+      "id": "a6ee845e-43f0-44f3-96fa-bd76c033e654",
+      "name": "🆕 Check: Is dit een nieuwe klant?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Loodgieter Jansen - Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "WhatsApp",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Naam": "={{ $('💬 Inkomend WhatsApp').item.json.contacts[0].profile.name }}",
+            "Telefoonnummer": "={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}",
+            "Datum": "={{ $now.setZone('Europe/Amsterdam').toFormat('dd-MM-yyyy, HH:mm') }}",
+            "STATUS BOT": "ACTIVE"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Naam",
+              "displayName": "Naam",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefoonnummer",
+              "displayName": "Telefoonnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Samenvatting gesprek",
+              "displayName": "Samenvatting gesprek",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "STATUS BOT",
+              "displayName": "STATUS BOT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TelegramThreadID",
+              "displayName": "TelegramThreadID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -80,
+        480
+      ],
+      "id": "a45a82b9-3e29-4aa4-954c-900ffe0ab93c",
+      "name": "📝 Sheet: Maak nieuwe rij",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PSF1eHsn1QlMuc9b",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6159387a-f22d-4336-a15a-c930ab995fc3",
+              "leftValue": "={{ $json.message.message_thread_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "4162aaaf-fcf7-4332-aff3-f69bfb115f18",
+              "leftValue": "={{ $json.message.chat.id }}",
+              "rightValue": -1003314662361,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "2a0c4382-398a-4abb-9c00-7951bacc9f36",
+              "leftValue": "={{ $json.message.from.is_bot }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2912,
+        1296
+      ],
+      "id": "07731857-dc80-4cd0-a30e-95fa0574503a",
+      "name": "✅ Check: Is dit in een Topic?"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2064,
+        592
+      ],
+      "id": "3c30ced7-6250-4d52-b33d-ab74abb3f9ca",
+      "name": "🔀 Merge: Beide Routes"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9b117f38-1968-4da6-a98b-108873aae443",
+              "leftValue": "={{ $('📂 Sheet: Haal Klant Data').item.json['STATUS BOT'] }}",
+              "rightValue": "ACTIVE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3088,
+        592
+      ],
+      "id": "1f82671a-1be2-4dfe-ae60-75aaaf18f8f9",
+      "name": "🤖 Check: Was bot actief?"
+    },
+    {
+      "parameters": {
+        "chatId": "-1003314662361",
+        "text": "=✋ <b>BERICHT ONTVANGEN (BOT ZWIJGT)</b>\n\n<b>{{ $('💬 Inkomend WhatsApp').item.json.contacts[0].profile.name }}</b> zegt:\n<i>\"{{ $('💬 Inkomend WhatsApp').item.json.messages[0].text.body }}\"</i>\n\n👇 <b>ANTWOORDEN:</b>\n<i>Typ je bericht hieronder in dit topic. De klant krijgt het direct.</i>\n\n👇 <b>ACTIES:</b>\n<a href=\"https://YOUR_N8N_DOMAIN/webhook/start-bot?tel={{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">✅ START DE BOT</a> (AI mag weer praten)\n\n📞 <a href=\"tel:+{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">Bel: +{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}</a>\n\n<a href=\"https://wa.me/{{ $('💬 Inkomend WhatsApp').item.json.messages[0].from }}\">💬 Open WhatsApp</a>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "message_thread_id": "={{ $('🔀 Merge: Data Compleet').item.json.TelegramThreadID }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3312,
+        688
+      ],
+      "id": "2c2ee0b0-0652-4c92-8590-dbaaa3e4f66f",
+      "name": "🔕 Telegram: Update (Bot = UIT)",
+      "webhookId": "d0412fc7-53d5-4871-bbc1-16813b564d9f",
+      "credentials": {
+        "telegramApi": {
+          "id": "3rbhbYNowj1q9CtA",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 🧠 2. DUAL-AGENT AI & SECURITY\n- Checkt: Mag de bot praten? (Status ACTIVE).\n- **Agent 1 (Receptioniste):** Voert het gesprek met de klant.\n- **🛡️ Douane:** JavaScript-laag blokkeert hallucinaties/interne codes.\n- **Agent 2 (Boekhouder):** Analyseert sentiment en filtert belangrijke info.",
+        "height": 720,
+        "width": 1584
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        992,
+        304
+      ],
+      "id": "09b0a76e-e2ec-4cec-889d-ae0bda8d5341",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## 📊 3. SYNC & NOTIFICATIES\n- Werkt Google Sheets (CRM) realtime bij.\n- **Spam Filter:** Blokkeert onnodige meldingen (zoals \"Oké\").\n- Stuurt update naar het juiste Telegram Topic.\n- Bevat 'Start', 'Stop' en 'Bel Direct' knoppen.",
+        "height": 720,
+        "width": 992,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2592,
+        304
+      ],
+      "id": "3f3fc7fb-3c7e-461d-a8a7-7789fd4c9f64",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## 🕹️ 4. HUMAN-IN-THE-LOOP CONTROLS\n- Webhooks die gekoppeld zijn aan knoppen in Telegram.\n- Hiermee pauzeert of start Jansen de AI direct per klant.\n- Werkt realtime zonder vertraging.",
+        "height": 656,
+        "width": 742,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        1040
+      ],
+      "id": "5e35e180-93f2-4267-9ee7-4f0b1d10b7ea",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini-2024-07-18",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini-2024-07-18"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1296,
+        688
+      ],
+      "id": "4833c7aa-e727-4bdc-a71f-7b7069087f39",
+      "name": "🧠 Het Brein",
+      "credentials": {
+        "openAiApi": {
+          "id": "RfG4k28yYG0T5NQr",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini-2024-07-18",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini-2024-07-18"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2320,
+        816
+      ],
+      "id": "da779e63-383e-4895-bb22-44c4276f09ae",
+      "name": "🧠 Het Brein1",
+      "credentials": {
+        "openAiApi": {
+          "id": "RfG4k28yYG0T5NQr",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "💬 Inkomend WhatsApp": [
+      {
+        "json": {
+          "messaging_product": "whatsapp",
+          "metadata": {
+            "display_phone_number": "15551476658",
+            "phone_number_id": "898329500031030"
+          },
+          "contacts": [
+            {
+              "profile": {
+                "name": "George"
+              },
+              "wa_id": "YOUR_PHONE_NUMBER"
+            }
+          ],
+          "messages": [
+            {
+              "from": "YOUR_PHONE_NUMBER",
+              "id": "wamid.HBgLMzE2MzY1ODQ3MTUVAgASGBQzRkFEREQwRUFDMDJENDM3RERENAA=",
+              "timestamp": "1765648665",
+              "text": {
+                "body": "zsm graag"
+              },
+              "type": "text"
+            }
+          ],
+          "field": "messages"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "💬 Inkomend WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "🔍 Check: Is het tekst?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Check: Is het tekst?": {
+      "main": [
+        [
+          {
+            "node": "📂 Sheet: Haal Klant Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "🔔 Filter: Is het belangrijk?": {
+      "main": [
+        [
+          {
+            "node": "🤖 Check: Was bot actief?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💭 Geheugen": {
+      "ai_memory": [
+        [
+          {
+            "node": "🤖 AI: Receptioniste",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💭 Geheugen1": {
+      "ai_memory": [
+        [
+          {
+            "node": "🧠 AI: Boekhouder (Analyse)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📂 Sheet: Haal Klant Data": {
+      "main": [
+        [
+          {
+            "node": "🆕 Check: Is dit een nieuwe klant?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❓ Check: Bestaat Topic?": {
+      "main": [
+        [
+          {
+            "node": "🔀 Merge: Data Compleet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🆕 Telegram: Maak Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🆕 Telegram: Maak Topic": {
+      "main": [
+        [
+          {
+            "node": "💾 Sheet: Save Topic ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💾 Sheet: Save Topic ID": {
+      "main": [
+        [
+          {
+            "node": "🔧 Zet ID terug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Merge: Data Compleet": {
+      "main": [
+        [
+          {
+            "node": "🛑 Check: Status ACTIVE?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🛑 Check: Status ACTIVE?": {
+      "main": [
+        [
+          {
+            "node": "🤖 AI: Receptioniste",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🔕 Telegram: Melding (Bot = UIT)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🛡️ Code: Douane Filter": {
+      "main": [
+        [
+          {
+            "node": "📤 WA: Stuur AI Antwoord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📤 WA: Stuur AI Antwoord": {
+      "main": [
+        [
+          {
+            "node": "🔀 Merge: Beide Routes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 AI: Boekhouder (Analyse)": {
+      "main": [
+        [
+          {
+            "node": "📝 Sheet: Update Samenvatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 AI: Receptioniste": {
+      "main": [
+        [
+          {
+            "node": "🛡️ Code: Douane Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Sheet: Update Samenvatting": {
+      "main": [
+        [
+          {
+            "node": "🔔 Filter: Is het belangrijk?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔗 Webhook: STOP": {
+      "main": [
+        [
+          {
+            "node": "🛑 Sheet: Zet op STOP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🛑 Sheet: Zet op STOP": {
+      "main": [
+        [
+          {
+            "node": "✅ Browser: Bevestig STOP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔗 Webhook: START": {
+      "main": [
+        [
+          {
+            "node": "▶️ Sheet: Zet op ACTIVE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "▶️ Sheet: Zet op ACTIVE": {
+      "main": [
+        [
+          {
+            "node": "✅ Browser: Bevestig START",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔵 Trigger: Jansen Typt": {
+      "main": [
+        [
+          {
+            "node": "✅ Check: Is dit in een Topic?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔎 Sheet: Zoek 06 bij Topic": {
+      "main": [
+        [
+          {
+            "node": "🗣️ WA: Stuur bericht Jansen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔧 Zet ID terug": {
+      "main": [
+        [
+          {
+            "node": "🔀 Merge: Data Compleet",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "🆕 Check: Is dit een nieuwe klant?": {
+      "main": [
+        [
+          {
+            "node": "📝 Sheet: Maak nieuwe rij",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "❓ Check: Bestaat Topic?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Sheet: Maak nieuwe rij": {
+      "main": [
+        [
+          {
+            "node": "🆕 Telegram: Maak Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Check: Is dit in een Topic?": {
+      "main": [
+        [
+          {
+            "node": "🔎 Sheet: Zoek 06 bij Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔕 Telegram: Melding (Bot = UIT)": {
+      "main": [
+        [
+          {
+            "node": "🔀 Merge: Beide Routes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "🔀 Merge: Beide Routes": {
+      "main": [
+        [
+          {
+            "node": "🧠 AI: Boekhouder (Analyse)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Check: Was bot actief?": {
+      "main": [
+        [
+          {
+            "node": "🔔 Telegram: Update (Bot = AAN)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🔕 Telegram: Update (Bot = UIT)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Het Brein": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 AI: Receptioniste",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧠 Het Brein1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🧠 AI: Boekhouder (Analyse)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "lsahVPYE4GsMiTpM"
+  },
+  "versionId": "e718f2c5-4653-4165-b602-daec8a60dc5a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "etRQpgqXsp8t4EZI",
+  "tags": []
+}
