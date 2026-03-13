@@ -1,0 +1,957 @@
+{
+  "name": "Invoice Processing v1 - Workflow B (Button Listener)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-interactive",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        -464
+      ],
+      "id": "575f98f3-3da8-4cbd-96ca-d2be892d798f",
+      "name": "⚡ Start: Slack Button Click",
+      "webhookId": "ab4ece3f-92f8-4b27-bf6d-fbca41fb365b",
+      "notes": "Ontvangt de interactieve payload van Slack zodra er op een knop wordt geklikt."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Slack stuurt de data ingepakt\nconst payload = JSON.parse($input.item.json.body.payload);\nconst buttonValue = payload.actions[0].value; \nconst user = payload.user.username || \"Iemand\";\nconst userId = payload.user.id;\n\n// LOGICA OM HET ID TE VINDEN\nlet recordId = buttonValue;\n\nif (buttonValue && buttonValue.includes(\"__\")) {\n    const parts = buttonValue.split(\"__\");\n    recordId = parts[1];\n}\n\nif (!recordId) {\n    throw new Error(\"Geen Record ID gevonden in de knop: \" + buttonValue);\n}\n\n// HIER ZIT DE FIX: We retourneren een Array met een json object\nreturn [\n  {\n    json: {\n      action_id: payload.actions[0].action_id,\n      full_string: buttonValue,\n      clean_record_id: recordId,\n      user: user,\n      user_id: userId,\n      channel_id: payload.channel.id,\n      message_ts: payload.message.ts\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -464
+      ],
+      "id": "01114c3e-b80e-4988-ab2e-f5d0daeafb93",
+      "name": "📦 Code: Extract Payload",
+      "notes": "Pakt de JSON uit en haalt het Action ID (Approve/Reject) en het Airtable Record ID op."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action_id }}",
+                    "rightValue": "approve_invoice",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b1c8c458-8902-4660-9c87-dfd76757dbf0"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "06c41f02-6e4c-44aa-9803-8db0d5cf7110",
+                    "leftValue": "={{ $json.action_id }}",
+                    "rightValue": "reject_invoice",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        -464
+      ],
+      "id": "6719e9bb-3e37-4a1f-868c-2e942e01b75c",
+      "name": "🔀 Route: Approve vs Reject",
+      "notes": "Splitst de route op basis van de gekozen actie (goedkeuren of afwijzen)."
+    },
+    {
+      "parameters": {
+        "base": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice Processing v1 - n8n workflow",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_VENDORS_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Facturen",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID/YOUR_AIRTABLE_VENDORS_TABLE_ID"
+        },
+        "id": "={{ $('📦 Code: Extract Payload').item.json.clean_record_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        -608
+      ],
+      "id": "e56ef09e-ac7b-49d6-bdbc-2463ae461584",
+      "name": "📥 Airtable: Get Details",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0ymdfpXXdG3JLR2n",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "notes": "Haalt de volledige factuurdata op (Bedrag, Datum, PDF Link) om door te sturen naar de boekhouding."
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\n\n// Haal bedrag en BTW op\nlet totaalBedrag = parseFloat(data.Bedrag) || 0;\nlet btwBedrag = parseFloat(data.BTW) || 0;\n\n// Bereken het bedrag EXCLUSIEF BTW\nlet bedragExclBtw = totaalBedrag - btwBedrag;\nbedragExclBtw = bedragExclBtw.toFixed(2);\n\n// Datum formatteren\nconst datum = data.Datum || new Date().toISOString().split('T')[0];\n\n// Leveranciersnaam\nconst naam = (data['Naam (from Leverancier)'] && data['Naam (from Leverancier)'][0]) || 'Onbekend';\n\n// Factuurnummer\nconst factuurnummer = data.Factuurnummer || 'Geen kenmerk';\n\nconst body = {\n  purchase_invoice: {\n    contact_id: \"475440760197481862\",\n    reference: factuurnummer,\n    date: datum,\n    details_attributes: [\n      {\n        description: `Factuur van ${naam}`,\n        price: bedragExclBtw,  // ← Nu EXCLUSIEF BTW\n        tax_rate_id: \"475257263575008816\"\n      }\n    ]\n  }\n};\n\nconsole.log(\"Sending to Moneybird:\", JSON.stringify(body, null, 2));\nconsole.log(`Bedrag incl BTW: €${totaalBedrag}, BTW: €${btwBedrag}, Excl BTW: €${bedragExclBtw}`);\n\nreturn body;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -608
+      ],
+      "id": "4116d650-d704-4fe3-9cde-4d2810126d4f",
+      "name": "⚙️ Code: Format for API",
+      "notes": "Formatteert de datum en het bedrag, en berekent eventueel BTW-regels voor Moneybird."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://moneybird.com/api/v2/YOUR_MONEYBIRD_ADMINISTRATION_ID/documents/purchase_invoices",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        -608
+      ],
+      "id": "f7f6c847-6dfe-4a9f-9a33-122a632b5156",
+      "name": "🐦 API: Create Invoice",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "IpBaMsvCLYp5HQlt",
+          "name": "Moneybird - Sandbox invoicing"
+        }
+      },
+      "notes": "Verstuurt de inkoopfactuur via een POST request naar de Moneybird API."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "finance"
+        },
+        "ts": "={{ $('📦 Code: Extract Payload').item.json.message_ts }}",
+        "messageType": "block",
+        "blocksUi": "=[]",
+        "text": "=✅ Factuur is goedgekeurd door <@{{ $('📦 Code: Extract Payload').item.json.user_id }}>!",
+        "updateFields": {},
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1792,
+        -608
+      ],
+      "id": "73ec6966-4b3c-4339-bf2b-f70ec8859d56",
+      "name": "💬 Slack: Update Status",
+      "webhookId": "dec08e30-86c8-4e8c-909f-b7e6790a369a",
+      "credentials": {
+        "slackApi": {
+          "id": "sp1mu7sxB66kf5rh",
+          "name": "Slack Bot"
+        }
+      },
+      "notes": "Verwijdert de knoppen en toont een groen vinkje + gebruikersnaam in Slack."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice Processing v1 - n8n workflow",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_VENDORS_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Facturen",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID/YOUR_AIRTABLE_VENDORS_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('📦 Code: Extract Payload').item.json.clean_record_id }}",
+            "Status": "Approved"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Factuurnummer",
+              "displayName": "Factuurnummer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Leverancier",
+              "displayName": "Leverancier",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Naam (from Leverancier)",
+              "displayName": "Naam (from Leverancier)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Bedrag",
+              "displayName": "Bedrag",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "PDF Link",
+              "displayName": "PDF Link",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Review",
+                  "value": "Review"
+                },
+                {
+                  "name": "Approved",
+                  "value": "Approved"
+                },
+                {
+                  "name": "Processed",
+                  "value": "Processed"
+                },
+                {
+                  "name": "Duplicate",
+                  "value": "Duplicate"
+                },
+                {
+                  "name": "Rejected",
+                  "value": "Rejected"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        -608
+      ],
+      "id": "91d79b95-508a-4f41-b56e-815b8a1d0c4b",
+      "name": "✅ Airtable: Set Approved",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0ymdfpXXdG3JLR2n",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "notes": "Zet de status direct op 'Approved' zodat dit zichtbaar is in het systeem."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice Processing v1 - n8n workflow",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_VENDORS_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Facturen",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID/YOUR_AIRTABLE_VENDORS_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('📦 Code: Extract Payload').item.json.clean_record_id }}",
+            "Status": "Processed"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Factuurnummer",
+              "displayName": "Factuurnummer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Leverancier",
+              "displayName": "Leverancier",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Naam (from Leverancier)",
+              "displayName": "Naam (from Leverancier)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Bedrag",
+              "displayName": "Bedrag",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "PDF Link",
+              "displayName": "PDF Link",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Review",
+                  "value": "Review"
+                },
+                {
+                  "name": "Approved",
+                  "value": "Approved"
+                },
+                {
+                  "name": "Processed",
+                  "value": "Processed"
+                },
+                {
+                  "name": "Duplicate",
+                  "value": "Duplicate"
+                },
+                {
+                  "name": "Rejected",
+                  "value": "Rejected"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Laatst Gewijzigd",
+              "displayName": "Laatst Gewijzigd",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1568,
+        -608
+      ],
+      "id": "531ed672-0841-4fb9-a968-b8df3aa93595",
+      "name": "🏁 Airtable: Set Processed",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0ymdfpXXdG3JLR2n",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "notes": "Zet de status op 'Processed' om aan te geven dat de export naar boekhouding geslaagd is."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_BASE_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice Processing v1 - n8n workflow",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID"
+        },
+        "table": {
+          "__rl": true,
+          "value": "YOUR_AIRTABLE_VENDORS_TABLE_ID",
+          "mode": "list",
+          "cachedResultName": "Facturen",
+          "cachedResultUrl": "https://airtable.com/YOUR_AIRTABLE_BASE_ID/YOUR_AIRTABLE_VENDORS_TABLE_ID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('📦 Code: Extract Payload').item.json.clean_record_id }}",
+            "Status": "Rejected"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Factuurnummer",
+              "displayName": "Factuurnummer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Leverancier",
+              "displayName": "Leverancier",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Naam (from Leverancier)",
+              "displayName": "Naam (from Leverancier)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "Datum",
+              "displayName": "Datum",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Bedrag",
+              "displayName": "Bedrag",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "PDF Link",
+              "displayName": "PDF Link",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Review",
+                  "value": "Review"
+                },
+                {
+                  "name": "Approved",
+                  "value": "Approved"
+                },
+                {
+                  "name": "Processed",
+                  "value": "Processed"
+                },
+                {
+                  "name": "Duplicate",
+                  "value": "Duplicate"
+                },
+                {
+                  "name": "Rejected",
+                  "value": "Rejected"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        -272
+      ],
+      "id": "c010a743-82c7-4632-9add-daf7d99dd357",
+      "name": "❌ Airtable: Set Rejected",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0ymdfpXXdG3JLR2n",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "notes": "Zet de status op 'Rejected' in de database."
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "finance"
+        },
+        "ts": "={{ $('📦 Code: Extract Payload').item.json.message_ts }}",
+        "messageType": "block",
+        "blocksUi": "=[]",
+        "text": "=❌ Factuur is afgewezen door <@{{ $('📦 Code: Extract Payload').item.json.user_id }}>.",
+        "updateFields": {},
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1792,
+        -272
+      ],
+      "id": "ba3cbbf4-f371-45a2-8d86-01472a9bccca",
+      "name": "💬 Slack: Update (Reject)",
+      "webhookId": "dec08e30-86c8-4e8c-909f-b7e6790a369a",
+      "credentials": {
+        "slackApi": {
+          "id": "sp1mu7sxB66kf5rh",
+          "name": "Slack Bot"
+        }
+      },
+      "notes": "Verwijdert de knoppen en toont een rood kruis + gebruikersnaam in Slack."
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2064,
+        -464
+      ],
+      "id": "e11353e6-58c8-4a72-a58d-86a76b17d6c0",
+      "name": "🔚 End: Send 200 OK",
+      "notes": "Stuurt een '200 OK' signaal terug naar Slack om de verbinding netjes te sluiten (voorkomt timeout errors)"
+    },
+    {
+      "parameters": {
+        "content": "## ⚡ 1. INTERACTION & ROUTING\n\nOntvangst & Keuze:\nLuistert naar de knop-klik vanuit Slack. Het script pakt de data uit (wie klikte er? om welke factuur gaat het?) en bepaalt de route: Goedkeuren of Afwijzen.",
+        "height": 416,
+        "width": 720,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        -624
+      ],
+      "id": "69b31d3b-db06-474f-8d80-7e89171560d0",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## ✅ 2. APPROVAL & MONEYBIRD EXPORT\n\nVerwerking:\nZet status op 'Approved'.\nHaalt factuurdata op uit Airtable.\nFormatteert data voor de boekhouding.\nVerstuurt naar Moneybird API.\nBevestigt succes in Slack.",
+        "height": 416,
+        "width": 1344,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -832
+      ],
+      "id": "94420192-718c-4a39-b71f-0082d7563042",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## ❌ 3. REJECTION FLOW\n\nAfwijzing:\nBij afkeuring wordt de status in Airtable direct op 'Rejected' gezet. De gebruiker krijgt feedback in Slack dat de factuur is geweigerd. Er gaat niets naar Moneybird.",
+        "height": 336,
+        "width": 1344,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -400
+      ],
+      "id": "2602522c-535d-4f4f-8ab5-7b14b197d63f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## 🏁 4. COMPLETION\n\nAfronding:\nStuurt een technisch '200 OK' signaal terug naar de Slack servers om de verbinding netjes te sluiten en time-out errors te voorkomen.",
+        "height": 448,
+        "width": 480,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        -640
+      ],
+      "id": "3d03480a-9259-49ed-9fab-3e9d4abcd913",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "⚡ Start: Slack Button Click": {
+      "main": [
+        [
+          {
+            "node": "📦 Code: Extract Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📦 Code: Extract Payload": {
+      "main": [
+        [
+          {
+            "node": "🔀 Route: Approve vs Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Route: Approve vs Reject": {
+      "main": [
+        [
+          {
+            "node": "✅ Airtable: Set Approved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "❌ Airtable: Set Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📥 Airtable: Get Details": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Code: Format for API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Code: Format for API": {
+      "main": [
+        [
+          {
+            "node": "🐦 API: Create Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🐦 API: Create Invoice": {
+      "main": [
+        [
+          {
+            "node": "🏁 Airtable: Set Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Slack: Update Status": {
+      "main": [
+        [
+          {
+            "node": "🔚 End: Send 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Airtable: Set Approved": {
+      "main": [
+        [
+          {
+            "node": "📥 Airtable: Get Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🏁 Airtable: Set Processed": {
+      "main": [
+        [
+          {
+            "node": "💬 Slack: Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❌ Airtable: Set Rejected": {
+      "main": [
+        [
+          {
+            "node": "💬 Slack: Update (Reject)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Slack: Update (Reject)": {
+      "main": [
+        [
+          {
+            "node": "🔚 End: Send 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "lsahVPYE4GsMiTpM"
+  },
+  "versionId": "30871a69-7a85-4bd4-b422-a9a08b11bb0e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "BEGwXtjpr9Fv05Ld",
+  "tags": []
+}
